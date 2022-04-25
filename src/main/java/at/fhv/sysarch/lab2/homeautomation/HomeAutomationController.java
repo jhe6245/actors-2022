@@ -1,6 +1,5 @@
 package at.fhv.sysarch.lab2.homeautomation;
 
-import akka.actor.TypedActor;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.PostStop;
@@ -10,22 +9,31 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
+import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 import at.fhv.sysarch.lab2.homeautomation.ui.UI;
 
+import java.time.Duration;
+
 public class HomeAutomationController extends AbstractBehavior<Void>{
-    private ActorRef<TemperatureSensor.TemperatureCommand> tempSensor;
-    private  ActorRef<AirCondition.AirConditionCommand> airCondition;
+
+    private ActorRef<TemperatureSensor.Command> tempSensor;
+    private ActorRef<AirCondition.Command> airCondition;
+    private ActorRef<AmbientTemperature.Command> ambientTemp;
 
     public static Behavior<Void> create() {
         return Behaviors.setup(HomeAutomationController::new);
     }
 
-    private  HomeAutomationController(ActorContext<Void> context) {
+    private HomeAutomationController(ActorContext<Void> context) {
         super(context);
+
         // TODO: consider guardians and hierarchies. Who should create and communicate with which Actors?
-        this.airCondition = getContext().spawn(AirCondition.create("2", "1"), "AirCondition");
-        this.tempSensor = getContext().spawn(TemperatureSensor.create(this.airCondition, "1", "1"), "temperatureSensor");
-        ActorRef<Void> ui = getContext().spawn(UI.create(this.tempSensor, this.airCondition), "UI");
+
+        this.ambientTemp = getContext().spawn(AmbientTemperature.create(Duration.ofSeconds(10), 1), "AmbientTemperature");
+        this.tempSensor = getContext().spawn(TemperatureSensor.create("1", "1", ambientTemp), "TemperatureSensor");
+        this.airCondition = getContext().spawn(AirCondition.create("2", "1", tempSensor), "AirCondition");
+
+        getContext().spawn(UI.create(this.tempSensor, this.airCondition, this.ambientTemp), "UI");
         getContext().getLog().info("HomeAutomation Application started");
     }
 

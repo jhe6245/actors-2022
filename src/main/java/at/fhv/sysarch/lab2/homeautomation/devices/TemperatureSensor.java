@@ -2,60 +2,67 @@ package at.fhv.sysarch.lab2.homeautomation.devices;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.PostStop;
-import akka.actor.typed.javadsl.AbstractBehavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.Receive;
+import akka.actor.typed.javadsl.*;
+import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 
-import java.util.Optional;
+import java.time.Duration;
 
-public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.TemperatureCommand> {
+public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Command> {
 
-    public interface TemperatureCommand {}
+    private final ActorRef<AmbientTemperature.Command> ambientTemp;
 
-    public static final class ReadTemperature implements TemperatureCommand {
-        final Optional<Double> value;
+    public interface Command {}
 
-        public ReadTemperature(Optional<Double> value) {
-            this.value = value;
-        }
-    }
+    public record TakeReading(ActorRef<Reading> reader) implements Command {}
+    public record Reading(double value, String unit) implements Command {}
 
-    public static Behavior<TemperatureCommand> create(ActorRef<AirCondition.AirConditionCommand> airCondition, String groupId, String deviceId) {
-        return Behaviors.setup(context -> new TemperatureSensor(context, airCondition, groupId, deviceId));
-    }
+    private record ReceiveEnvironmentTemp(double val, ActorRef<Reading> forwardTo) implements Command {}
 
     private final String groupId;
     private final String deviceId;
-    private ActorRef<AirCondition.AirConditionCommand> airCondition;
 
-    public TemperatureSensor(ActorContext<TemperatureCommand> context, ActorRef<AirCondition.AirConditionCommand> airCondition, String groupId, String deviceId) {
+
+    public TemperatureSensor(ActorContext<Command> context, String groupId, String deviceId, ActorRef<AmbientTemperature.Command> ambientTemp) {
         super(context);
-        this.airCondition = airCondition;
         this.groupId = groupId;
         this.deviceId = deviceId;
+        this.ambientTemp = ambientTemp;
+    }
 
-        getContext().getLog().info("TemperatureSensor started");
+    public static Behavior<Command> create(String groupId, String deviceId, ActorRef<AmbientTemperature.Command> ambientTemp) {
+        return Behaviors.setup(context ->
+                new TemperatureSensor(context, groupId, deviceId, ambientTemp)
+        );
     }
 
     @Override
-    public Receive<TemperatureCommand> createReceive() {
+    public Receive<Command> createReceive() {
         return newReceiveBuilder()
-                .onMessage(ReadTemperature.class, this::onReadTemperature)
-                .onSignal(PostStop.class, signal -> onPostStop())
+                .onMessage(TakeReading.class, this::onTakeReading)
+                .onMessage(ReceiveEnvironmentTemp.class, this::onReceiveEnvironmentTemp)
                 .build();
     }
 
-    private Behavior<TemperatureCommand> onReadTemperature(ReadTemperature r) {
-        getContext().getLog().info("TemperatureSensor received {}", r.value.get());
-        this.airCondition.tell(new AirCondition.EnrichedTemperature(r.value, Optional.of("Celsius")));
+    private Behavior<Command> onTakeReading(TakeReading takeReading) {
+        getContext().ask(
+                AmbientTemperature.TempResponse.class,
+                ambientTemp,
+                Duration.ofMillis(100),
+                AmbientTemperature.TempRequest::new,
+                (res, err) -> new ReceiveEnvironmentTemp(res.value(), takeReading.reader())
+        );
         return this;
     }
 
-    private TemperatureSensor onPostStop() {
-        getContext().getLog().info("TemperatureSensor actor {}-{} stopped", groupId, deviceId);
+    private Behavior<Command> onReceiveEnvironmentTemp(ReceiveEnvironmentTemp receiveEnvironmentTemp) {
+        receiveEnvironmentTemp
+                .forwardTo()
+                .tell(new Reading(receiveEnvironmentTemp.val(), "Celsius"));
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "temperature sensor " + groupId + "-" + deviceId;
+    }
 }
