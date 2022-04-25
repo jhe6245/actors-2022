@@ -13,6 +13,7 @@ import at.fhv.sysarch.lab2.homeautomation.devices.MediaStation;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
 import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 import at.fhv.sysarch.lab2.homeautomation.environmental.Weather;
+import at.fhv.sysarch.lab2.homeautomation.environmental.WeatherType;
 
 import java.util.Arrays;
 import java.util.Scanner;
@@ -66,6 +67,9 @@ public class UI extends AbstractBehavior<Void> {
             if (command[0].equals("env")) {
                 if(command[1].equals("temp")) {
                     this.ambientTemp.tell(new AmbientTemperature.SetTemp(Double.parseDouble(command[2])));
+                }
+                if(command[1].equals("weather")) {
+                    this.weather.tell(new Weather.SetWeather(WeatherType.valueOf(command[2])));
                 }
             }
             if (command[0].equals("ac")) {

@@ -11,6 +11,8 @@ public class Weather extends AbstractBehavior<Weather.Command> {
 
     public interface Command {}
 
+    public record SetWeather(WeatherType weather) implements Command {}
+
     public record WeatherRequest(ActorRef<WeatherResponse> receiver) implements Command {}
     public record WeatherResponse(WeatherType weather) implements Command {}
 
@@ -33,9 +35,18 @@ public class Weather extends AbstractBehavior<Weather.Command> {
     @Override
     public Receive<Command> createReceive() {
         return newReceiveBuilder()
+                .onMessage(SetWeather.class, this::onSetWeather)
                 .onMessage(WeatherRequest.class, this::onWeatherRequest)
                 .onMessage(ChangeRandomly.class, this::onChangeRandomly)
                 .build();
+    }
+
+    private Behavior<Command> onSetWeather(SetWeather setWeather) {
+
+        this.currentWeatherType = setWeather.weather;
+
+        getContext().getLog().info("{} manually set", this);
+        return this;
     }
 
     private Behavior<Command> onWeatherRequest(WeatherRequest weatherRequest) {

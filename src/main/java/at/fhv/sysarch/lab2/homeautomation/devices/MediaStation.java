@@ -7,17 +7,12 @@ import akka.actor.typed.javadsl.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Set;
 
 public class MediaStation extends AbstractBehavior<MediaStation.Command> {
 
     public interface Command {}
 
     public record MovieRequest(String movieName) implements Command {}
-
-    public record SubscribeToPlayingState(ActorRef<PlayingStateChanged> subscriber) implements Command {}
-    public record PlayingStateChanged(boolean nowPlaying) implements Command {}
-
     private enum MovieOver implements Command { INST }
 
     private final TimerScheduler<Command> timers;
@@ -30,9 +25,9 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
     private String latestMovie;
     private LocalDateTime playingMovieUntil;
 
-    private Set<ActorRef<PlayingStateChanged>> playingStateSubscribers;
+    private final ActorRef<Blinds.Command> blinds;
 
-    private MediaStation(ActorContext<Command> context, TimerScheduler<Command> timers, String groupId, String deviceId) {
+    private MediaStation(ActorContext<Command> context, TimerScheduler<Command> timers, String groupId, String deviceId, ActorRef<Blinds.Command> blinds) {
         super(context);
 
         this.timers = timers;
@@ -41,20 +36,22 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
         this.deviceId = deviceId;
 
         this.movies = Map.of(
+                "windows xp start sound effect", Duration.ofSeconds(3),
                 "sharknado", Duration.ofHours(1).plusMinutes(30)
         );
         this.playingMovieUntil = LocalDateTime.MIN;
+
+        this.blinds = blinds;
     }
 
-    public static Behavior<Command> create(String groupId, String deviceId) {
-        return Behaviors.setup(context -> Behaviors.withTimers(timers -> new MediaStation(context, timers, groupId, deviceId)));
+    public static Behavior<Command> create(String groupId, String deviceId, ActorRef<Blinds.Command> blinds) {
+        return Behaviors.setup(context -> Behaviors.withTimers(timers -> new MediaStation(context, timers, groupId, deviceId, blinds)));
     }
 
     @Override
     public Receive<Command> createReceive() {
         return newReceiveBuilder()
                 .onMessage(MovieRequest.class, this::onMovieRequest)
-                .onMessage(SubscribeToPlayingState.class, this::onSubscribeToPlayingState)
                 .onMessage(MovieOver.class, this::onMovieOver)
                 .build();
     }
@@ -84,26 +81,18 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
             this.timers.cancel(this);
             this.timers.startSingleTimer(this, MovieOver.INST, requestedMovieDuration);
 
-            publish(new PlayingStateChanged(true));
             getContext().getLog().info("{} now playing {} ({})", this, requested, requestedMovieDuration);
+
+            this.blinds.tell(Blinds.MovieStarted.INST);
         }
 
         return this;
     }
 
-    private Behavior<Command> onSubscribeToPlayingState(SubscribeToPlayingState subscribeToPlayingState) {
-        this.playingStateSubscribers.add(subscribeToPlayingState.subscriber);
-        return this;
-    }
-
     private Behavior<Command> onMovieOver(MovieOver movieOver) {
-        publish(new PlayingStateChanged(false));
         getContext().getLog().info("{} finished playing {}", this, this.latestMovie);
+        this.blinds.tell(Blinds.MovieEnded.INST);
         return this;
-    }
-
-    private void publish(PlayingStateChanged playingStateChanged) {
-        playingStateSubscribers.forEach(subscriber -> subscriber.tell(playingStateChanged));
     }
 
     @Override

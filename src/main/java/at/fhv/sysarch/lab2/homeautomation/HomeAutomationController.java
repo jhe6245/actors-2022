@@ -7,10 +7,7 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
-import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
-import at.fhv.sysarch.lab2.homeautomation.devices.Blinds;
-import at.fhv.sysarch.lab2.homeautomation.devices.MediaStation;
-import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
+import at.fhv.sysarch.lab2.homeautomation.devices.*;
 import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 import at.fhv.sysarch.lab2.homeautomation.environmental.Weather;
 import at.fhv.sysarch.lab2.homeautomation.ui.UI;
@@ -25,6 +22,7 @@ public class HomeAutomationController extends AbstractBehavior<Void>{
     private final ActorRef<MediaStation.Command> mediaStation;
     private final ActorRef<Weather.Command> weather;
     private final ActorRef<Blinds.Command> blinds;
+    private final ActorRef<WeatherSensor.Command> weatherSensor;
 
     public static Behavior<Void> create() {
         return Behaviors.setup(HomeAutomationController::new);
@@ -36,9 +34,11 @@ public class HomeAutomationController extends AbstractBehavior<Void>{
         this.ambientTemp = getContext().spawn(AmbientTemperature.create(Duration.ofSeconds(10), 1), "AmbientTemperature");
         this.tempSensor = getContext().spawn(TemperatureSensor.create("1", "1", ambientTemp), "TemperatureSensor");
         this.airCondition = getContext().spawn(AirCondition.create("2", "1", tempSensor), "AirCondition");
-        this.mediaStation = getContext().spawn(MediaStation.create("3", "1"), "MediaStation");
-        this.weather = getContext().spawn(Weather.create(), "Weather");
         this.blinds = getContext().spawn(Blinds.create("4", "1"), "Blinds");
+        this.mediaStation = getContext().spawn(MediaStation.create("3", "1", blinds), "MediaStation");
+        this.weather = getContext().spawn(Weather.create(), "Weather");
+        this.weatherSensor = getContext().spawn(WeatherSensor.create(weather, blinds), "WeatherSensor");
+
 
         getContext().spawn(UI.create(this.tempSensor, this.airCondition, this.ambientTemp, this.mediaStation, this.weather, this.blinds), "UI");
         getContext().getLog().info("HomeAutomation Application started");

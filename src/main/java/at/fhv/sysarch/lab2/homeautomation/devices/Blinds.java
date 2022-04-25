@@ -5,34 +5,25 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import at.fhv.sysarch.lab2.homeautomation.environmental.WeatherType;
 
 public class Blinds extends AbstractBehavior<Blinds.Command> {
 
     public interface Command {}
 
-    public enum Open implements Command { INST }
-    public enum Close implements Command { INST }
+    public enum MovieStarted implements Command { INST }
+    public enum MovieEnded implements Command { INST }
 
-    public enum CloseUntilReleased implements Command { INST }
-    public enum ReleaseAndOpen implements Command { INST }
+    public record WeatherChanged(WeatherType weatherType) implements Command {}
 
     private final String groupId;
     private final String deviceId;
-
-    private enum State {
-        OPEN,
-        CLOSED,
-        CLOSED_UNTIL_RELEASED
-    }
-
-    private State state;
 
     private Blinds(ActorContext<Command> context, String groupId, String deviceId) {
         super(context);
 
         this.groupId = groupId;
         this.deviceId = deviceId;
-        this.state = State.OPEN;
     }
 
     public static Behavior<Command> create(String groupId, String deviceId) {
@@ -42,47 +33,63 @@ public class Blinds extends AbstractBehavior<Blinds.Command> {
     @Override
     public Receive<Command> createReceive() {
         return newReceiveBuilder()
-                .onMessage(Open.class, this::onOpen)
-                .onMessage(Close.class, this::onClose)
-                .onMessage(CloseUntilReleased.class, this::onCloseUntilReleased)
-                .onMessage(ReleaseAndOpen.class, this::onReleaseAndOpen)
+                .onMessage(MovieStarted.class, this::onMovieStarted)
+                .onMessage(MovieEnded.class, this::onMovieEnded)
+                .onMessage(WeatherChanged.class, this::onWeatherChanged)
                 .build();
     }
 
-    private Behavior<Command> onOpen(Open open) {
-        if(state != State.CLOSED_UNTIL_RELEASED && state != State.OPEN) {
-            getContext().getLog().info("{} opening...", this);
-            state = State.OPEN;
-            getContext().getLog().info("{}", this);
-        }
+    private boolean blindsClosed;
+
+    private boolean moviePlaying;
+    private boolean sunny;
+
+    private Behavior<Command> onMovieStarted(MovieStarted movieStarted) {
+        moviePlaying = true;
+
+        ensureBlindsClosed();
+
         return this;
     }
 
-    private Behavior<Command> onClose(Close close) {
-        if(state != State.CLOSED_UNTIL_RELEASED && state != State.CLOSED) {
-            getContext().getLog().info("{} closing...", this);
-            state = State.CLOSED;
-            getContext().getLog().info("{}", this);
-        }
+    private Behavior<Command> onMovieEnded(MovieEnded movieEnded) {
+        moviePlaying = false;
+
+        if(!sunny)
+            ensureBlindsOpen();
+
         return this;
     }
 
-    private Behavior<Command> onCloseUntilReleased(CloseUntilReleased closeUntilReleased) {
-        getContext().getLog().info("{} closing until released...", this);
-        this.state = State.CLOSED_UNTIL_RELEASED;
-        getContext().getLog().info("{}", this);
+    private Behavior<Command> onWeatherChanged(WeatherChanged weatherChanged) {
+        sunny = weatherChanged.weatherType.equals(WeatherType.SUNNY);
+
+        if(sunny)
+            ensureBlindsClosed();
+        else if(!moviePlaying)
+            ensureBlindsOpen();
+
         return this;
     }
 
-    private Behavior<Command> onReleaseAndOpen(ReleaseAndOpen releaseAndOpen) {
-        getContext().getLog().info("{} releasing...", this);
-        this.state = State.OPEN;
-        getContext().getLog().info("{}", this);
-        return this;
+    private void ensureBlindsClosed() {
+        if(blindsClosed)
+            return;
+
+        blindsClosed = true;
+        getContext().getLog().info("{} closed", this);
+    }
+
+    private void ensureBlindsOpen() {
+        if(!blindsClosed)
+            return;
+
+        blindsClosed = false;
+        getContext().getLog().info("{} opened", this);
     }
 
     @Override
     public String toString() {
-        return "blinds " + groupId + "-" + deviceId + " (currently " + state + ")";
+        return "blinds " + groupId + "-" + deviceId;
     }
 }
