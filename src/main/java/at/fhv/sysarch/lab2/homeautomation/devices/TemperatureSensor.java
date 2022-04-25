@@ -22,7 +22,7 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Comman
     private final String deviceId;
 
 
-    public TemperatureSensor(ActorContext<Command> context, String groupId, String deviceId, ActorRef<AmbientTemperature.Command> ambientTemp) {
+    private TemperatureSensor(ActorContext<Command> context, String groupId, String deviceId, ActorRef<AmbientTemperature.Command> ambientTemp) {
         super(context);
         this.groupId = groupId;
         this.deviceId = deviceId;

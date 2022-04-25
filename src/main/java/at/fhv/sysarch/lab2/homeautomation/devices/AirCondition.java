@@ -14,9 +14,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
 
     public record StartCooling() implements Command {}
     public record StopCooling() implements Command {}
-
     public record TemperatureMeasurement(double value, String unit) implements Command {}
-
     private enum InternalClockTick implements Command { INST }
 
     private final String groupId;
@@ -27,7 +25,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
     private final ActorRef<TemperatureSensor.Command> temperatureSensor;
 
 
-    public AirCondition(ActorContext<Command> context, TimerScheduler<AirCondition.Command> timers, String groupId, String deviceId, ActorRef<TemperatureSensor.Command> temperatureSensor) {
+    private AirCondition(ActorContext<Command> context, TimerScheduler<AirCondition.Command> timers, String groupId, String deviceId, ActorRef<TemperatureSensor.Command> temperatureSensor) {
         super(context);
 
         this.groupId = groupId;
@@ -47,7 +45,6 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
                 )
         );
     }
-
 
     @Override
     public Receive<Command> createReceive() {

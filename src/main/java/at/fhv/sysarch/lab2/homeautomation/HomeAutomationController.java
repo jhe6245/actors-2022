@@ -8,17 +8,21 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
+import at.fhv.sysarch.lab2.homeautomation.devices.MediaStation;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
 import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
+import at.fhv.sysarch.lab2.homeautomation.environmental.Weather;
 import at.fhv.sysarch.lab2.homeautomation.ui.UI;
 
 import java.time.Duration;
 
 public class HomeAutomationController extends AbstractBehavior<Void>{
 
-    private ActorRef<TemperatureSensor.Command> tempSensor;
-    private ActorRef<AirCondition.Command> airCondition;
-    private ActorRef<AmbientTemperature.Command> ambientTemp;
+    private final ActorRef<TemperatureSensor.Command> tempSensor;
+    private final ActorRef<AirCondition.Command> airCondition;
+    private final ActorRef<AmbientTemperature.Command> ambientTemp;
+    private final ActorRef<MediaStation.Command> mediaStation;
+    private final ActorRef<Weather.Command> weather;
 
     public static Behavior<Void> create() {
         return Behaviors.setup(HomeAutomationController::new);
@@ -32,8 +36,10 @@ public class HomeAutomationController extends AbstractBehavior<Void>{
         this.ambientTemp = getContext().spawn(AmbientTemperature.create(Duration.ofSeconds(10), 1), "AmbientTemperature");
         this.tempSensor = getContext().spawn(TemperatureSensor.create("1", "1", ambientTemp), "TemperatureSensor");
         this.airCondition = getContext().spawn(AirCondition.create("2", "1", tempSensor), "AirCondition");
+        this.mediaStation = getContext().spawn(MediaStation.create("3", "1"), "MediaStation");
+        this.weather = getContext().spawn(Weather.create(), "Weather");
 
-        getContext().spawn(UI.create(this.tempSensor, this.airCondition, this.ambientTemp), "UI");
+        getContext().spawn(UI.create(this.tempSensor, this.airCondition, this.ambientTemp, this.mediaStation, this.weather), "UI");
         getContext().getLog().info("HomeAutomation Application started");
     }
 

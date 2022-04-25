@@ -21,7 +21,7 @@ public class AmbientTemperature extends AbstractBehavior<AmbientTemperature.Comm
 
     private double currentTemp;
 
-    public AmbientTemperature(ActorContext<Command> context, TimerScheduler<Command> timerScheduler, Duration tickRate, double maxChange) {
+    private AmbientTemperature(ActorContext<Command> context, TimerScheduler<Command> timerScheduler, Duration tickRate, double maxChange) {
         super(context);
 
         this.tickRate = tickRate;

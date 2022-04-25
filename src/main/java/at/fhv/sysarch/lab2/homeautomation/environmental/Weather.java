@@ -2,10 +2,7 @@ package at.fhv.sysarch.lab2.homeautomation.environmental;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.AbstractBehavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Receive;
-import akka.actor.typed.javadsl.TimerScheduler;
+import akka.actor.typed.javadsl.*;
 
 import java.time.Duration;
 import java.util.Random;
@@ -21,12 +18,16 @@ public class Weather extends AbstractBehavior<Weather.Command> {
 
     private WeatherType currentWeatherType;
 
-    public Weather(ActorContext<Command> context, TimerScheduler<Command> timers) {
+    private Weather(ActorContext<Command> context, TimerScheduler<Command> timers) {
         super(context);
 
         this.currentWeatherType = WeatherType.SUNNY;
 
         timers.startTimerAtFixedRate(ChangeRandomly.INST, Duration.ofMinutes(1));
+    }
+
+    public static Behavior<Command> create() {
+        return Behaviors.setup(context -> Behaviors.withTimers(timers -> new Weather(context, timers)));
     }
 
     @Override
