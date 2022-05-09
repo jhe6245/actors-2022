@@ -16,10 +16,15 @@ import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 import at.fhv.sysarch.lab2.homeautomation.environmental.Weather;
 import at.fhv.sysarch.lab2.homeautomation.environmental.WeatherType;
 
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Scanner;
 
-public class UI extends AbstractBehavior<Void> {
+public class UI extends AbstractBehavior<UI.Command> {
+
+    interface Command {}
+    record FridgeContents(Map<Fridge.Product, Integer> contents) implements Command {}
 
     private final ActorRef<TemperatureSensor.Command> tempSensor;
     private final ActorRef<AirCondition.Command> airCondition;
@@ -29,11 +34,11 @@ public class UI extends AbstractBehavior<Void> {
     private final ActorRef<Blinds.Command> blinds;
     private final ActorRef<Fridge.Command> fridge;
 
-    public static Behavior<Void> create(ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds, ActorRef<Fridge.Command> fridge) {
+    public static Behavior<Command> create(ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds, ActorRef<Fridge.Command> fridge) {
         return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, ambientTemp, mediaStation, weather, blinds, fridge));
     }
 
-    private UI(ActorContext<Void> context, ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds, ActorRef<Fridge.Command> fridge) {
+    private UI(ActorContext<Command> context, ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds, ActorRef<Fridge.Command> fridge) {
         super(context);
 
         this.airCondition = airCondition;
@@ -50,8 +55,17 @@ public class UI extends AbstractBehavior<Void> {
     }
 
     @Override
-    public Receive<Void> createReceive() {
-        return newReceiveBuilder().onSignal(PostStop.class, signal -> onPostStop()).build();
+    public Receive<Command> createReceive() {
+        return newReceiveBuilder()
+                .onMessage(FridgeContents.class, this::onFridgeContents)
+                .onSignal(PostStop.class, signal -> onPostStop())
+                .build();
+    }
+
+    private Behavior<Command> onFridgeContents(FridgeContents fridgeContents) {
+        System.out.println("Contents:");
+        fridgeContents.contents.forEach((key, value) -> System.out.print(value + " " + key));
+        return this;
     }
 
     private UI onPostStop() {
@@ -88,9 +102,25 @@ public class UI extends AbstractBehavior<Void> {
                 }
             }
             if(command[0].equals("fridge")) {
-                if(command[1].equals("take")) {
+                if(command.length == 1) {
+                    getContext().ask(
+                            Fridge.CurrentContentsResponse.class,
+                            this.fridge,
+                            Duration.ofMillis(100),
+                            Fridge.CurrentContentsRequest::new,
+                            (res, err) -> new FridgeContents(res.contents())
+                    );
+                }
+                else if(command[1].equals("take")) {
                     String product = String.join(" ", Arrays.copyOfRange(command, 2, command.length));
                     this.fridge.tell(new Fridge.RemoveProduct(product));
+                }
+                else if(command[1].equals("order")) {
+                    int amount = Integer.parseInt(command[2]);
+                    String name = command[3];
+                    double price = Double.parseDouble(command[4]);
+                    double weight = Double.parseDouble(command[5]);
+                    this.fridge.tell(new Fridge.OrderProduct(new Fridge.Product(name, price, weight), amount));
                 }
             }
 

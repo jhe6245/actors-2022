@@ -18,7 +18,7 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
     public record CurrentContentsRequest(ActorRef<CurrentContentsResponse> receiver) implements Command { }
     public record CurrentContentsResponse(Map<Product, Integer> contents) implements Command { }
     public record RemoveProduct(String productName) implements Command { }
-    public record OrderProduct(Product product) implements Command { }
+    public record OrderProduct(Product product, int amount) implements Command { }
 
     private static class SensorReadings implements Command {
         public int numberOfItems = -1;
@@ -86,7 +86,10 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
                         contents.remove(p);
                     else
                         contents.put(p, current - 1);
+
+                    getContext().getSelf().tell(new OrderProduct(p, 1));
                 });
+
 
         return this;
     }
@@ -126,7 +129,9 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
 
                 orderProcessor.tell(new OrderProcessor.Order(sensorReadings.productToOrder));
             }
-            getContext().getLog().info("{} cannot order {}, already full", this, sensorReadings.productToOrder);
+            else {
+                getContext().getLog().info("{} cannot order {}, already full", this, sensorReadings.productToOrder);
+            }
         }
         else {
             getContext().getLog().info("{} received partial measurements", this);
