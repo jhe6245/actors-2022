@@ -11,6 +11,7 @@ import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
 import at.fhv.sysarch.lab2.homeautomation.devices.Blinds;
 import at.fhv.sysarch.lab2.homeautomation.devices.MediaStation;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
+import at.fhv.sysarch.lab2.homeautomation.devices.fridge.Fridge;
 import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 import at.fhv.sysarch.lab2.homeautomation.environmental.Weather;
 import at.fhv.sysarch.lab2.homeautomation.environmental.WeatherType;
@@ -26,12 +27,13 @@ public class UI extends AbstractBehavior<Void> {
     private final ActorRef<MediaStation.Command> mediaStation;
     private final ActorRef<Weather.Command> weather;
     private final ActorRef<Blinds.Command> blinds;
+    private final ActorRef<Fridge.Command> fridge;
 
-    public static Behavior<Void> create(ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds) {
-        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, ambientTemp, mediaStation, weather, blinds));
+    public static Behavior<Void> create(ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds, ActorRef<Fridge.Command> fridge) {
+        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, ambientTemp, mediaStation, weather, blinds, fridge));
     }
 
-    private UI(ActorContext<Void> context, ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds) {
+    private UI(ActorContext<Void> context, ActorRef<TemperatureSensor.Command> tempSensor, ActorRef<AirCondition.Command> airCondition, ActorRef<AmbientTemperature.Command> ambientTemp, ActorRef<MediaStation.Command> mediaStation, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds, ActorRef<Fridge.Command> fridge) {
         super(context);
 
         this.airCondition = airCondition;
@@ -40,6 +42,7 @@ public class UI extends AbstractBehavior<Void> {
         this.mediaStation = mediaStation;
         this.weather = weather;
         this.blinds = blinds;
+        this.fridge = fridge;
 
         new Thread(this::runCommandLine).start();
 

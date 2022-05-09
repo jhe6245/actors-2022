@@ -4,11 +4,14 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
+import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
 import java.util.Map;
 
 public class WeightSensor extends AbstractBehavior<WeightSensor.Command> {
+
+
 
     public interface Command { }
     public record MeasurementRequest(ActorRef<Measurement> receiver, Map<Fridge.Product, Integer> things) implements Command {}
@@ -16,6 +19,10 @@ public class WeightSensor extends AbstractBehavior<WeightSensor.Command> {
 
     public WeightSensor(ActorContext<Command> context) {
         super(context);
+    }
+
+    public static Behavior<Command> create() {
+        return Behaviors.setup(WeightSensor::new);
     }
 
     @Override

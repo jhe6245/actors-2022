@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
+import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
 import java.time.Duration;
@@ -11,12 +12,18 @@ import java.util.Map;
 
 public class CounterSensor extends AbstractBehavior<CounterSensor.Command> {
 
+
+
     public interface Command { }
     public record MeasurementRequest(ActorRef<Measurement> receiver, Map<Fridge.Product, Integer> things) implements Command { }
     public record Measurement(int amount) implements Command { }
 
     public CounterSensor(ActorContext<Command> context) {
         super(context);
+    }
+
+    public static Behavior<Command> create() {
+        return Behaviors.setup(CounterSensor::new);
     }
 
     @Override
