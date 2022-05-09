@@ -13,6 +13,7 @@ import java.util.Map;
 
 public class Fridge extends AbstractBehavior<Fridge.Command> {
 
+
     public interface Command {}
     public record CurrentContentsRequest(ActorRef<CurrentContentsResponse> receiver) implements Command { }
     public record CurrentContentsResponse(Map<Product, Integer> contents) implements Command { }
@@ -41,15 +42,18 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
 
     private final Map<Product, Integer> contents = new HashMap<>();
 
-    private final ActorRef<VolumeSensor.Command> volumeSensor;
+    private final ActorRef<CounterSensor.Command> counter;
+    private final ActorRef<WeightSensor.Command> weightSensor;
 
-    public Fridge(ActorContext<Command> context, ActorRef<VolumeSensor.Command> volumeSensor) {
+
+    public Fridge(ActorContext<Command> context, ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor) {
         super(context);
-        this.volumeSensor = volumeSensor;
+        this.counter = counter;
+        this.weightSensor = weightSensor;
     }
 
-    public static Behavior<Command> create(ActorRef<VolumeSensor.Command> volumeSensor) {
-        return Behaviors.setup(context -> new Fridge(context, volumeSensor));
+    public static Behavior<Command> create(ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor) {
+        return Behaviors.setup(context -> new Fridge(context, counter, weightSensor));
     }
 
     @Override
@@ -86,11 +90,19 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
         var readings = new SensorReadings(orderProduct.product);
 
         getContext().ask(
-                VolumeSensor.VolumeResponse.class,
-                volumeSensor,
+                CounterSensor.Measurement.class,
+                counter,
                 Duration.ofMillis(100),
-                VolumeSensor.VolumeRequest::new,
+                r -> new CounterSensor.MeasurementRequest(r, Map.copyOf(contents)),
                 (res, err) -> { readings.numberOfItems = res.amount(); return readings; }
+        );
+
+        getContext().ask(
+                WeightSensor.Measurement.class,
+                weightSensor,
+                Duration.ofMillis(100),
+                r -> new WeightSensor.MeasurementRequest(r, Map.copyOf(contents)),
+                (res, err) -> { readings.load = res.totalWeight(); return readings; }
         );
 
         return this;
@@ -99,12 +111,17 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
     private Behavior<Command> onSensorReadings(SensorReadings sensorReadings) {
 
         if(sensorReadings.isPopulated()) {
+            getContext().getLog().info("{} received measurements", this);
+
             if(sensorReadings.numberOfItems < maxNumberOfItems
                     && sensorReadings.load + sensorReadings.productToOrder.weight <= maxLoad) {
 
                 getContext().getLog().info("{} ordering {}", this, sensorReadings.productToOrder);
             }
             getContext().getLog().info("{} cannot order {}, already full", this, sensorReadings.productToOrder);
+        }
+        else {
+            getContext().getLog().info("{} received partial measurements", this);
         }
 
         return this;
@@ -113,6 +130,6 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
 
     @Override
     public String toString() {
-        return "Fridge";
+        return "fridge";
     }
 }
