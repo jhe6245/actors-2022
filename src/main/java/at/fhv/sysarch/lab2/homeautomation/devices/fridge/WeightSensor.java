@@ -14,8 +14,6 @@ public class WeightSensor extends AbstractBehavior<WeightSensor.Command> {
     public record MeasurementRequest(ActorRef<Measurement> receiver, Map<Fridge.Product, Integer> things) implements Command {}
     public record Measurement(double totalWeight) implements Command { }
 
-
-
     public WeightSensor(ActorContext<Command> context) {
         super(context);
     }

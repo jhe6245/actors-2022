@@ -44,16 +44,18 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
 
     private final ActorRef<CounterSensor.Command> counter;
     private final ActorRef<WeightSensor.Command> weightSensor;
+    private final ActorRef<OrderProcessor.Command> orderProcessor;
 
 
-    public Fridge(ActorContext<Command> context, ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor) {
+    public Fridge(ActorContext<Command> context, ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor, ActorRef<OrderProcessor.Command> orderProcessor) {
         super(context);
         this.counter = counter;
         this.weightSensor = weightSensor;
+        this.orderProcessor = orderProcessor;
     }
 
-    public static Behavior<Command> create(ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor) {
-        return Behaviors.setup(context -> new Fridge(context, counter, weightSensor));
+    public static Behavior<Command> create(ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor, ActorRef<OrderProcessor.Command> orderProcessor) {
+        return Behaviors.setup(context -> new Fridge(context, counter, weightSensor, orderProcessor));
     }
 
     @Override
@@ -117,6 +119,8 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
                     && sensorReadings.load + sensorReadings.productToOrder.weight <= maxLoad) {
 
                 getContext().getLog().info("{} ordering {}", this, sensorReadings.productToOrder);
+
+                orderProcessor.tell(new OrderProcessor.Order(sensorReadings.productToOrder));
             }
             getContext().getLog().info("{} cannot order {}, already full", this, sensorReadings.productToOrder);
         }
