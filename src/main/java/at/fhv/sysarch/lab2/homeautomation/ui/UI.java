@@ -87,6 +87,12 @@ public class UI extends AbstractBehavior<Void> {
                     this.mediaStation.tell(new MediaStation.MovieRequest(movie));
                 }
             }
+            if(command[0].equals("fridge")) {
+                if(command[1].equals("take")) {
+                    String product = String.join(" ", Arrays.copyOfRange(command, 2, command.length));
+                    this.fridge.tell(new Fridge.RemoveProduct(product));
+                }
+            }
 
         }
 

@@ -17,7 +17,7 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
     public interface Command {}
     public record CurrentContentsRequest(ActorRef<CurrentContentsResponse> receiver) implements Command { }
     public record CurrentContentsResponse(Map<Product, Integer> contents) implements Command { }
-    public record RemoveProduct(Product product) implements Command { }
+    public record RemoveProduct(String productName) implements Command { }
     public record OrderProduct(Product product) implements Command { }
 
     private static class SensorReadings implements Command {
@@ -75,14 +75,18 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
 
     private Behavior<Command> onRemoveProduct(RemoveProduct removeProduct) {
 
-        var p = removeProduct.product();
+        contents.keySet()
+                .stream()
+                .filter(p -> p.name.equals(removeProduct.productName))
+                .findAny()
+                .ifPresent(p -> {
+                    int current = contents.get(p);
 
-        int current = contents.get(p);
-
-        if(current <= 1)
-            contents.remove(p);
-        else
-            contents.put(p, current - 1);
+                    if(current <= 1)
+                        contents.remove(p);
+                    else
+                        contents.put(p, current - 1);
+                });
 
         return this;
     }
