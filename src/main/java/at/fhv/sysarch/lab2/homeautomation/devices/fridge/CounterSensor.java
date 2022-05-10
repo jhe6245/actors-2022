@@ -12,11 +12,11 @@ import java.util.Map;
 
 public class CounterSensor extends AbstractBehavior<CounterSensor.Command> {
 
-
-
     public interface Command { }
     public record MeasurementRequest(ActorRef<Measurement> receiver, Map<Fridge.Product, Integer> things) implements Command { }
-    public record Measurement(int amount) implements Command { }
+    public record Measurement(int amount, int remainingAmount) implements Command { }
+
+    private static final int maxNumberOfItems = 30;
 
     public CounterSensor(ActorContext<Command> context) {
         super(context);
@@ -36,7 +36,7 @@ public class CounterSensor extends AbstractBehavior<CounterSensor.Command> {
     public Behavior<Command> onVolumeRequest(MeasurementRequest measurementRequest) {
         var result = measurementRequest.things.values().stream().reduce(0, Integer::sum);
         getContext().getLog().info("{} measured {} items", this, result);
-        measurementRequest.receiver.tell(new Measurement(result));
+        measurementRequest.receiver.tell(new Measurement(result, maxNumberOfItems - result));
         return this;
     }
 

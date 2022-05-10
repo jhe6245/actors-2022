@@ -7,9 +7,9 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class Fridge extends AbstractBehavior<Fridge.Command> {
 
@@ -18,44 +18,24 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
     public record CurrentContentsRequest(ActorRef<CurrentContentsResponse> receiver) implements Command { }
     public record CurrentContentsResponse(Map<Product, Integer> contents) implements Command { }
     public record RemoveProduct(String productName) implements Command { }
-    public record OrderProduct(Product product, int amount) implements Command { }
-
-    private static class SensorReadings implements Command {
-        public int numberOfItems = -1;
-        public double load = -1;
-
-        public final Product productToOrder;
-
-        public SensorReadings(Product productToOrder) {
-            this.productToOrder = productToOrder;
-        }
-
-        public boolean isPopulated() {
-            return numberOfItems != -1 && load != -1;
-        }
-    }
+    public record RequestOrder(Product product, int amount) implements Command { }
 
     public record Product(String name, double price, double weight) { }
 
-    private final int maxNumberOfItems = 30;
-    private final double maxLoad = 100;
 
     private final Map<Product, Integer> contents = new HashMap<>();
 
     private final ActorRef<CounterSensor.Command> counter;
     private final ActorRef<WeightSensor.Command> weightSensor;
-    private final ActorRef<OrderProcessor.Command> orderProcessor;
 
-
-    public Fridge(ActorContext<Command> context, ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor, ActorRef<OrderProcessor.Command> orderProcessor) {
+    public Fridge(ActorContext<Command> context, ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor) {
         super(context);
         this.counter = counter;
         this.weightSensor = weightSensor;
-        this.orderProcessor = orderProcessor;
     }
 
-    public static Behavior<Command> create(ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor, ActorRef<OrderProcessor.Command> orderProcessor) {
-        return Behaviors.setup(context -> new Fridge(context, counter, weightSensor, orderProcessor));
+    public static Behavior<Command> create(ActorRef<CounterSensor.Command> counter, ActorRef<WeightSensor.Command> weightSensor) {
+        return Behaviors.setup(context -> new Fridge(context, counter, weightSensor));
     }
 
     @Override
@@ -63,8 +43,7 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
         return newReceiveBuilder()
                 .onMessage(CurrentContentsRequest.class, this::onCurrentContentsRequest)
                 .onMessage(RemoveProduct.class, this::onRemoveProduct)
-                .onMessage(OrderProduct.class, this::onOrderProduct)
-                .onMessage(SensorReadings.class, this::onSensorReadings)
+                .onMessage(RequestOrder.class, this::onRequestOrder)
                 .build();
     }
 
@@ -87,55 +66,20 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
                     else
                         contents.put(p, current - 1);
 
-                    getContext().getSelf().tell(new OrderProduct(p, 1));
+                    getContext().getSelf().tell(new RequestOrder(p, 1));
                 });
 
 
         return this;
     }
 
-    private Behavior<Command> onOrderProduct(OrderProduct orderProduct) {
+    private Behavior<Command> onRequestOrder(RequestOrder requestOrder) {
 
-        var readings = new SensorReadings(orderProduct.product);
+        var processor = getContext().spawn(
+                OrderProcessor.create(getContext().getSelf(), counter, weightSensor),
+                "OrderProcessor" + UUID.randomUUID());
 
-        getContext().ask(
-                CounterSensor.Measurement.class,
-                counter,
-                Duration.ofMillis(100),
-                r -> new CounterSensor.MeasurementRequest(r, Map.copyOf(contents)),
-                (res, err) -> { readings.numberOfItems = res.amount(); return readings; }
-        );
-
-        getContext().ask(
-                WeightSensor.Measurement.class,
-                weightSensor,
-                Duration.ofMillis(100),
-                r -> new WeightSensor.MeasurementRequest(r, Map.copyOf(contents)),
-                (res, err) -> { readings.load = res.totalWeight(); return readings; }
-        );
-
-        return this;
-    }
-
-    private Behavior<Command> onSensorReadings(SensorReadings sensorReadings) {
-
-        if(sensorReadings.isPopulated()) {
-            getContext().getLog().info("{} received measurements", this);
-
-            if(sensorReadings.numberOfItems < maxNumberOfItems
-                    && sensorReadings.load + sensorReadings.productToOrder.weight <= maxLoad) {
-
-                getContext().getLog().info("{} ordering {}", this, sensorReadings.productToOrder);
-
-                orderProcessor.tell(new OrderProcessor.Order(sensorReadings.productToOrder));
-            }
-            else {
-                getContext().getLog().info("{} cannot order {}, already full", this, sensorReadings.productToOrder);
-            }
-        }
-        else {
-            getContext().getLog().info("{} received partial measurements", this);
-        }
+        processor.tell(new OrderProcessor.ReceiveOrder(requestOrder.product, requestOrder.amount));
 
         return this;
     }

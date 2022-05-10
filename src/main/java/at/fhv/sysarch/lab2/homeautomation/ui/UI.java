@@ -120,7 +120,7 @@ public class UI extends AbstractBehavior<UI.Command> {
                     String name = command[3];
                     double price = Double.parseDouble(command[4]);
                     double weight = Double.parseDouble(command[5]);
-                    this.fridge.tell(new Fridge.OrderProduct(new Fridge.Product(name, price, weight), amount));
+                    this.fridge.tell(new Fridge.RequestOrder(new Fridge.Product(name, price, weight), amount));
                 }
             }
 

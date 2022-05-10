@@ -11,11 +11,11 @@ import java.util.Map;
 
 public class WeightSensor extends AbstractBehavior<WeightSensor.Command> {
 
-
-
     public interface Command { }
     public record MeasurementRequest(ActorRef<Measurement> receiver, Map<Fridge.Product, Integer> things) implements Command {}
-    public record Measurement(double totalWeight) implements Command { }
+    public record Measurement(double totalWeight, double remainingWeight) implements Command { }
+
+    private static final double maxLoad = 100;
 
     public WeightSensor(ActorContext<Command> context) {
         super(context);
@@ -41,7 +41,7 @@ public class WeightSensor extends AbstractBehavior<WeightSensor.Command> {
 
         getContext().getLog().info("{} measured {} kg", this, result);
 
-        measurementRequest.receiver.tell(new Measurement(result));
+        measurementRequest.receiver.tell(new Measurement(result, maxLoad - result));
 
         return this;
     }
