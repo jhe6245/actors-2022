@@ -46,8 +46,7 @@ public class HomeAutomationController extends AbstractBehavior<Void>{
 
         var counter = getContext().spawn(CounterSensor.create(), "CounterSensor");
         var weightSensor = getContext().spawn(WeightSensor.create(), "WeightSensor");
-        var orderProcessor = getContext().spawn(OrderProcessor.create(), "OrderProcessor");
-        this.fridge = getContext().spawn(Fridge.create(counter, weightSensor, orderProcessor), "Fridge");
+        this.fridge = getContext().spawn(Fridge.create(counter, weightSensor), "Fridge");
 
         getContext().spawn(UI.create(this.tempSensor, this.airCondition, this.ambientTemp, this.mediaStation, this.weather, this.blinds, this.fridge), "UI");
         getContext().getLog().info("HomeAutomation Application started");
