@@ -22,8 +22,8 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
 
     private final Map<String, Duration> movies;
 
-    private String latestMovie;
-    private LocalDateTime playingMovieUntil;
+    private String currentMovie;
+    private LocalDateTime movieEndTime;
 
     private final ActorRef<Blinds.Command> blinds;
 
@@ -35,11 +35,13 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
         this.groupId = groupId;
         this.deviceId = deviceId;
 
+        // titles must be lower case for case insensitive matching
         this.movies = Map.of(
-                "windows xp start sound effect", Duration.ofSeconds(3),
+                "test", Duration.ofSeconds(10),
+                "water world trailer", Duration.ofSeconds(30),
                 "sharknado", Duration.ofHours(1).plusMinutes(30)
         );
-        this.playingMovieUntil = LocalDateTime.MIN;
+        this.movieEndTime = LocalDateTime.MIN;
 
         this.blinds = blinds;
     }
@@ -68,15 +70,15 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
 
             getContext().getLog().info("{} cannot play {}, unknown movie", this, requested);
 
-        } else if(this.playingMovieUntil.isAfter(now)) {
+        } else if(this.movieEndTime.isAfter(now)) {
 
             getContext().getLog().info("{} cannot play {}, still playing {} ({} remaining)",
-                    this, requested, this.latestMovie, Duration.between(now, this.playingMovieUntil));
+                    this, requested, this.currentMovie, Duration.between(now, this.movieEndTime));
 
         } else {
 
-            this.latestMovie = requested;
-            this.playingMovieUntil = now.plus(requestedMovieDuration);
+            this.currentMovie = requested;
+            this.movieEndTime = now.plus(requestedMovieDuration);
 
             this.timers.cancel(this);
             this.timers.startSingleTimer(this, MovieOver.INST, requestedMovieDuration);
@@ -90,7 +92,8 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
     }
 
     private Behavior<Command> onMovieOver(MovieOver movieOver) {
-        getContext().getLog().info("{} finished playing {}", this, this.latestMovie);
+        getContext().getLog().info("{} finished playing {}", this, this.currentMovie);
+        this.currentMovie = null;
         this.blinds.tell(Blinds.MovieEnded.INST);
         return this;
     }

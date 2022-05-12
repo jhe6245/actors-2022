@@ -9,11 +9,8 @@ import java.time.Duration;
 
 public class AirCondition extends AbstractBehavior<AirCondition.Command> {
 
-
     public interface Command {}
 
-    public enum StartCooling implements Command { INST }
-    public enum StopCooling implements Command { INST }
     public record TemperatureMeasurement(double value, String unit) implements Command {}
     private enum InternalClockTick implements Command { INST }
 
@@ -23,6 +20,8 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
     private boolean isCooling;
 
     private final ActorRef<TemperatureSensor.Command> temperatureSensor;
+
+    private static final double targetTemperature = 20;
 
 
     private AirCondition(ActorContext<Command> context, TimerScheduler<AirCondition.Command> timers, String groupId, String deviceId, ActorRef<TemperatureSensor.Command> temperatureSensor) {
@@ -50,9 +49,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
     public Receive<Command> createReceive() {
         return newReceiveBuilder()
                 .onMessage(InternalClockTick.class, this::onInternalClockTick)
-                .onMessage(StartCooling.class, this::onStartCooling)
-                .onMessage(StopCooling.class, this::onStopCooling)
-                .onMessage(TemperatureMeasurement.class, this::onReceiveTemperature)
+                .onMessage(TemperatureMeasurement.class, this::onTemperatureMeasurement)
                 .onSignal(PostStop.class, this::onPostStop)
                 .build();
     }
@@ -69,32 +66,22 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
         return this;
     }
 
-    private Behavior<Command> onReceiveTemperature(TemperatureMeasurement r) {
+    private Behavior<Command> onTemperatureMeasurement(TemperatureMeasurement r) {
         getContext().getLog().info("{} received temperature reading {} {}", this, r.value, r.unit);
 
-        if(r.value >= 20) {
-            getContext().getSelf().tell(StartCooling.INST);
+        if(r.value >= targetTemperature) {
+            if(!this.isCooling) {
+                this.isCooling = true;
+                getContext().getLog().info("{} turned on", this);
+            }
         }
         else {
-            getContext().getSelf().tell(StopCooling.INST);
+            if(this.isCooling) {
+                this.isCooling = false;
+                getContext().getLog().info("{} turned off", this);
+            }
         }
 
-        return this;
-    }
-
-    private Behavior<Command> onStopCooling(StopCooling r) {
-        if(this.isCooling) {
-            this.isCooling = false;
-            getContext().getLog().info("{} turned off", this);
-        }
-        return this;
-    }
-
-    private Behavior<Command> onStartCooling(StartCooling r) {
-        if(!this.isCooling) {
-            this.isCooling = true;
-            getContext().getLog().info("{} turned on", this);
-        }
         return this;
     }
 
