@@ -64,7 +64,7 @@ public class UI extends AbstractBehavior<UI.Command> {
 
     private Behavior<Command> onFridgeContents(FridgeContents fridgeContents) {
         System.out.println("Contents:");
-        fridgeContents.contents.forEach((key, value) -> System.out.print(value + " " + key));
+        fridgeContents.contents.forEach((key, value) -> System.out.println(value + " " + key));
         return this;
     }
 
@@ -79,30 +79,37 @@ public class UI extends AbstractBehavior<UI.Command> {
 
         while (scanner.hasNextLine() && !(line = scanner.nextLine()).equalsIgnoreCase("exit")) {
 
-            String[] command = line.split("\s+");
+            try {
+                executeCommand(line);
+            }
+            catch (Throwable x) {
+                x.printStackTrace();
+            }
+        }
 
-            if (command[0].equals("env")) {
-                if(command[1].equals("temp")) {
+        getContext().getLog().info("UI done");
+    }
+
+    private void executeCommand(String line) {
+        String[] command = line.split("\s+");
+
+        switch (command[0]) {
+            case "env":
+                if (command[1].equals("temp")) {
                     this.ambientTemp.tell(new AmbientTemperature.SetTemp(Double.parseDouble(command[2])));
                 }
-                if(command[1].equals("weather")) {
+                if (command[1].equals("weather")) {
                     this.weather.tell(new Weather.SetWeather(WeatherType.valueOf(command[2])));
                 }
-            }
-            if (command[0].equals("ac")) {
-                if (command[1].equals("on"))
-                    this.airCondition.tell(new AirCondition.StartCooling());
-                if (command[1].equals("off"))
-                    this.airCondition.tell(new AirCondition.StopCooling());
-            }
-            if(command[0].equals("media")) {
-                if(command[1].equals("play")) {
+                break;
+            case "media":
+                if (command[1].equals("play")) {
                     String movie = String.join(" ", Arrays.copyOfRange(command, 2, command.length));
                     this.mediaStation.tell(new MediaStation.MovieRequest(movie));
                 }
-            }
-            if(command[0].equals("fridge")) {
-                if(command.length == 1) {
+                break;
+            case "fridge":
+                if (command.length == 1) {
                     getContext().ask(
                             Fridge.CurrentContentsResponse.class,
                             this.fridge,
@@ -110,22 +117,20 @@ public class UI extends AbstractBehavior<UI.Command> {
                             Fridge.CurrentContentsRequest::new,
                             (res, err) -> new FridgeContents(res.contents())
                     );
-                }
-                else if(command[1].equals("take")) {
+                } else if (command[1].equals("take")) {
                     String product = String.join(" ", Arrays.copyOfRange(command, 2, command.length));
                     this.fridge.tell(new Fridge.RemoveProduct(product));
-                }
-                else if(command[1].equals("order")) {
+                } else if (command[1].equals("order")) {
                     int amount = Integer.parseInt(command[2]);
                     String name = command[3];
                     double price = Double.parseDouble(command[4]);
                     double weight = Double.parseDouble(command[5]);
                     this.fridge.tell(new Fridge.RequestOrder(new Fridge.Product(name, price, weight), amount));
                 }
-            }
-
+                break;
+            default:
+                System.out.println("command not recognized");
+                break;
         }
-
-        getContext().getLog().info("UI done");
     }
 }

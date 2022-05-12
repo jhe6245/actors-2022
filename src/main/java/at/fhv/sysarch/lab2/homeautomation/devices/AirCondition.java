@@ -12,8 +12,8 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
 
     public interface Command {}
 
-    public record StartCooling() implements Command {}
-    public record StopCooling() implements Command {}
+    public enum StartCooling implements Command { INST }
+    public enum StopCooling implements Command { INST }
     public record TemperatureMeasurement(double value, String unit) implements Command {}
     private enum InternalClockTick implements Command { INST }
 
@@ -73,10 +73,10 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
         getContext().getLog().info("{} received temperature reading {} {}", this, r.value, r.unit);
 
         if(r.value >= 20) {
-            getContext().getSelf().tell(new StartCooling());
+            getContext().getSelf().tell(StartCooling.INST);
         }
         else {
-            getContext().getSelf().tell(new StopCooling());
+            getContext().getSelf().tell(StopCooling.INST);
         }
 
         return this;

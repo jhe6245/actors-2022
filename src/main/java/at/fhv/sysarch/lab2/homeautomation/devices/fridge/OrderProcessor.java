@@ -87,22 +87,20 @@ public class OrderProcessor extends AbstractBehavior<OrderProcessor.Command> {
 
     private Behavior<Command> onReceiveCount(ReceiveCount receiveCount) {
         this.receiveCount = receiveCount;
-        checkAndFinish();
-        return this;
+        return checkAndFinish();
     }
 
     private Behavior<Command> onReceiveWeight(ReceiveWeight receiveWeight) {
         this.receiveWeight = receiveWeight;
-        checkAndFinish();
-        return this;
+        return checkAndFinish();
     }
 
-    private void checkAndFinish() {
+    private Behavior<Command> checkAndFinish() {
         var rc = receiveCount;
         var rw = receiveWeight;
 
         if(rc == null || rw == null)
-            return;
+            return this;
 
         var amount = receiveOrder.amount;
         var product = receiveOrder.product;
@@ -114,7 +112,7 @@ public class OrderProcessor extends AbstractBehavior<OrderProcessor.Command> {
         else {
             getContext().getLog().info("order not possible");
         }
-        getContext().stop(getContext().getSelf());
+        return Behaviors.stopped();
     }
 
 

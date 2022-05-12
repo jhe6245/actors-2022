@@ -16,7 +16,7 @@ public class Weather extends AbstractBehavior<Weather.Command> {
     public record WeatherRequest(ActorRef<WeatherResponse> receiver) implements Command {}
     public record WeatherResponse(WeatherType weather) implements Command {}
 
-    private enum ChangeRandomly implements Command { INST }
+    private enum Fluctuate implements Command { INST }
 
     private WeatherType currentWeatherType;
 
@@ -25,7 +25,7 @@ public class Weather extends AbstractBehavior<Weather.Command> {
 
         this.currentWeatherType = WeatherType.SUNNY;
 
-        timers.startTimerAtFixedRate(ChangeRandomly.INST, Duration.ofMinutes(1));
+        timers.startTimerAtFixedRate(Fluctuate.INST, Duration.ofMinutes(1));
     }
 
     public static Behavior<Command> create() {
@@ -37,7 +37,7 @@ public class Weather extends AbstractBehavior<Weather.Command> {
         return newReceiveBuilder()
                 .onMessage(SetWeather.class, this::onSetWeather)
                 .onMessage(WeatherRequest.class, this::onWeatherRequest)
-                .onMessage(ChangeRandomly.class, this::onChangeRandomly)
+                .onMessage(Fluctuate.class, this::onFluctuate)
                 .build();
     }
 
@@ -54,12 +54,12 @@ public class Weather extends AbstractBehavior<Weather.Command> {
         return this;
     }
 
-    private Behavior<Command> onChangeRandomly(ChangeRandomly changeRandomly) {
+    private Behavior<Command> onFluctuate(Fluctuate fluctuate) {
 
         WeatherType[] values = WeatherType.values();
         this.currentWeatherType = values[new Random().nextInt(values.length)];
 
-        getContext().getLog().info("{} changed randomly", this);
+        getContext().getLog().info("{} fluctuated", this);
 
         return this;
     }
