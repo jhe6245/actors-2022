@@ -34,7 +34,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
 
         this.temperatureSensor = temperatureSensor;
 
-        timers.startTimerAtFixedRate(InternalClockTick.INST, Duration.ofSeconds(30));
+        timers.startTimerAtFixedRate(InternalClockTick.INST, Duration.ofSeconds(3));
     }
 
     public static Behavior<Command> create(String groupId, String deviceId, ActorRef<TemperatureSensor.Command> temperatureSensor) {
@@ -55,7 +55,6 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
     }
 
     private Behavior<Command> onInternalClockTick(InternalClockTick tick) {
-        getContext().getLog().info("{} reading temperature sensor", this);
         getContext().ask(
                 TemperatureSensor.Reading.class,
                 temperatureSensor,
@@ -67,18 +66,16 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
     }
 
     private Behavior<Command> onTemperatureMeasurement(TemperatureMeasurement r) {
-        getContext().getLog().info("{} received temperature reading {} {}", this, r.value, r.unit);
-
         if(r.value >= targetTemperature) {
             if(!this.isCooling) {
                 this.isCooling = true;
-                getContext().getLog().info("{} turned on", this);
+                getContext().getLog().info("turned on (temp {} {})", r.value, r.unit);
             }
         }
         else {
             if(this.isCooling) {
                 this.isCooling = false;
-                getContext().getLog().info("{} turned off", this);
+                getContext().getLog().info("turned off (temp {} {})", r.value, r.unit);
             }
         }
 
@@ -86,12 +83,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
     }
 
     private AirCondition onPostStop(PostStop postStop) {
-        getContext().getLog().info("{} actor stopped", this);
+        getContext().getLog().info("actor stopped");
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "AC unit " + groupId + "-" + deviceId + " (currently " + (isCooling ? "cooling" : "not cooling") + ")";
     }
 }

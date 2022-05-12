@@ -77,7 +77,7 @@ public class Blinds extends AbstractBehavior<Blinds.Command> {
             return;
 
         blindsClosed = true;
-        getContext().getLog().info("{} closed", this);
+        getContext().getLog().info("closed");
     }
 
     private void ensureBlindsOpen() {
@@ -85,11 +85,6 @@ public class Blinds extends AbstractBehavior<Blinds.Command> {
             return;
 
         blindsClosed = false;
-        getContext().getLog().info("{} opened", this);
-    }
-
-    @Override
-    public String toString() {
-        return "blinds " + groupId + "-" + deviceId;
+        getContext().getLog().info("opened");
     }
 }

@@ -36,7 +36,7 @@ public class HomeAutomationController extends AbstractBehavior<Void>{
     private HomeAutomationController(ActorContext<Void> context) {
         super(context);
 
-        this.ambientTemp = getContext().spawn(AmbientTemperature.create(Duration.ofSeconds(10), 5), "AmbientTemperature");
+        this.ambientTemp = getContext().spawn(AmbientTemperature.create(), "AmbientTemperature");
         this.tempSensor = getContext().spawn(TemperatureSensor.create("1", "1", ambientTemp), "TemperatureSensor");
         this.airCondition = getContext().spawn(AirCondition.create("2", "1", tempSensor), "AirCondition");
         this.blinds = getContext().spawn(Blinds.create("4", "1"), "Blinds");

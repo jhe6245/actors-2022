@@ -94,19 +94,15 @@ public class UI extends AbstractBehavior<UI.Command> {
         String[] command = line.split("\s+");
 
         switch (command[0]) {
-            case "env":
-                if (command[1].equals("temp")) {
-                    this.ambientTemp.tell(new AmbientTemperature.SetTemp(Double.parseDouble(command[2])));
-                }
-                if (command[1].equals("weather")) {
-                    this.weather.tell(new Weather.SetWeather(WeatherType.valueOf(command[2])));
-                }
+            case "temp":
+                this.ambientTemp.tell(new AmbientTemperature.SetTemp(Double.parseDouble(command[1])));
                 break;
-            case "media":
-                if (command[1].equals("play")) {
-                    String movie = String.join(" ", Arrays.copyOfRange(command, 2, command.length));
-                    this.mediaStation.tell(new MediaStation.MovieRequest(movie));
-                }
+            case "weather":
+                this.weather.tell(new Weather.SetWeather(WeatherType.valueOf(command[1].toUpperCase())));
+                break;
+            case "play":
+                String movie = String.join(" ", Arrays.copyOfRange(command, 1, command.length));
+                this.mediaStation.tell(new MediaStation.MovieRequest(movie));
                 break;
             case "fridge":
                 if (command.length == 1) {

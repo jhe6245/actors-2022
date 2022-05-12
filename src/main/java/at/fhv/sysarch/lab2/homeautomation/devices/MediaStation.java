@@ -68,12 +68,12 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
 
         if(requestedMovieDuration == null) {
 
-            getContext().getLog().info("{} cannot play {}, unknown movie", this, requested);
+            getContext().getLog().info("cannot play {}, unknown movie", requested);
 
         } else if(this.movieEndTime.isAfter(now)) {
 
-            getContext().getLog().info("{} cannot play {}, still playing {} ({} remaining)",
-                    this, requested, this.currentMovie, Duration.between(now, this.movieEndTime));
+            getContext().getLog().info("cannot play {}, still playing {} ({} remaining)",
+                    requested, this.currentMovie, Duration.between(now, this.movieEndTime));
 
         } else {
 
@@ -83,7 +83,7 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
             this.timers.cancel(this);
             this.timers.startSingleTimer(this, MovieOver.INST, requestedMovieDuration);
 
-            getContext().getLog().info("{} now playing {} ({})", this, requested, requestedMovieDuration);
+            getContext().getLog().info("now playing {} ({})", requested, requestedMovieDuration);
 
             this.blinds.tell(Blinds.MovieStarted.INST);
         }
@@ -92,14 +92,9 @@ public class MediaStation extends AbstractBehavior<MediaStation.Command> {
     }
 
     private Behavior<Command> onMovieOver(MovieOver movieOver) {
-        getContext().getLog().info("{} finished playing {}", this, this.currentMovie);
+        getContext().getLog().info("finished playing {}", this.currentMovie);
         this.currentMovie = null;
         this.blinds.tell(Blinds.MovieEnded.INST);
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "media station " + groupId + "-" + deviceId;
     }
 }

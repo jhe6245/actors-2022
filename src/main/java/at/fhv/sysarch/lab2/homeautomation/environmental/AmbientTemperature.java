@@ -16,26 +16,22 @@ public class AmbientTemperature extends AbstractBehavior<AmbientTemperature.Comm
     public record TempRequest(ActorRef<TempResponse> receiver) implements Command {}
     public record TempResponse(double value) implements Command {}
 
-    private final Duration tickRate;
-    private final double maxChange;
+    private static final double maxChange = 1;
 
     private double currentTemp;
 
-    private AmbientTemperature(ActorContext<Command> context, TimerScheduler<Command> timerScheduler, Duration tickRate, double maxChange) {
+    private AmbientTemperature(ActorContext<Command> context, TimerScheduler<Command> timerScheduler) {
         super(context);
 
-        this.tickRate = tickRate;
-        this.maxChange = maxChange;
+        currentTemp = 15;
 
-        currentTemp = Math.random() * 30;
-
-        timerScheduler.startTimerAtFixedRate(Fluctuate.INST, Duration.ofSeconds(10));
+        timerScheduler.startTimerAtFixedRate(Fluctuate.INST, Duration.ofSeconds(1));
     }
 
-    public static Behavior<Command> create(Duration randomizationInterval, double maxChange) {
+    public static Behavior<Command> create() {
         return Behaviors.setup(
                 context -> Behaviors.withTimers(
-                        timers -> new AmbientTemperature(context, timers, randomizationInterval, maxChange)
+                        timers -> new AmbientTemperature(context, timers)
                 )
         );
     }
@@ -52,9 +48,6 @@ public class AmbientTemperature extends AbstractBehavior<AmbientTemperature.Comm
     private Behavior<Command> onFluctuate(Fluctuate fluctuate) {
 
         currentTemp += (Math.random() * 2 - 1) * maxChange;
-
-        getContext().getLog().info("{} fluctuated", this);
-
         return this;
     }
 
@@ -62,7 +55,7 @@ public class AmbientTemperature extends AbstractBehavior<AmbientTemperature.Comm
 
         this.currentTemp = setTemp.value();
 
-        getContext().getLog().info("{} manually updated", this);
+        getContext().getLog().info("{} manually updated", currentTemp);
 
         return this;
     }
@@ -70,10 +63,5 @@ public class AmbientTemperature extends AbstractBehavior<AmbientTemperature.Comm
     private Behavior<Command> onTempRequest(TempRequest tempRequest) {
         tempRequest.receiver().tell(new TempResponse(this.currentTemp));
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "ambient temperature (" + currentTemp + ")";
     }
 }

@@ -60,16 +60,23 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
                 .stream()
                 .filter(p -> p.name.equals(removeProduct.productName))
                 .findAny()
-                .ifPresent(p -> {
-                    int current = contents.get(p);
+                .ifPresentOrElse(
+                        p -> {
+                            int current = contents.get(p);
 
-                    if(current <= 1)
-                        contents.remove(p);
-                    else
-                        contents.put(p, current - 1);
+                            if(current <= 1) {
+                                contents.remove(p);
+                                getContext().getLog().info("now out of {}", p.name);
+                                getContext().getSelf().tell(new RequestOrder(p, 1));
 
-                    getContext().getSelf().tell(new RequestOrder(p, 1));
-                });
+                            }
+                            else {
+                                contents.put(p, current - 1);
+                                getContext().getLog().info("now [{}] {} left", contents.get(p), p.name);
+                            }
+                        },
+                        () -> getContext().getLog().info("not found in fridge")
+                );
 
 
         return this;
@@ -94,12 +101,8 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
         // create entry or increment amount of existing
         contents.merge(product, amount, Integer::sum);
 
+        getContext().getLog().info("received {} {}", amount, product);
+
         return this;
-    }
-
-
-    @Override
-    public String toString() {
-        return "fridge";
     }
 }

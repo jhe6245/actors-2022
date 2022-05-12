@@ -23,9 +23,9 @@ public class Weather extends AbstractBehavior<Weather.Command> {
     private Weather(ActorContext<Command> context, TimerScheduler<Command> timers) {
         super(context);
 
-        this.currentWeatherType = WeatherType.SUNNY;
+        this.currentWeatherType = WeatherType.CLOUDY;
 
-        timers.startTimerAtFixedRate(Fluctuate.INST, Duration.ofMinutes(1));
+        timers.startTimerAtFixedRate(Fluctuate.INST, Duration.ofSeconds(30));
     }
 
     public static Behavior<Command> create() {
@@ -45,7 +45,7 @@ public class Weather extends AbstractBehavior<Weather.Command> {
 
         this.currentWeatherType = setWeather.weather;
 
-        getContext().getLog().info("{} manually set", this);
+        getContext().getLog().info("{} manually set", currentWeatherType);
         return this;
     }
 
@@ -59,13 +59,6 @@ public class Weather extends AbstractBehavior<Weather.Command> {
         WeatherType[] values = WeatherType.values();
         this.currentWeatherType = values[new Random().nextInt(values.length)];
 
-        getContext().getLog().info("{} fluctuated", this);
-
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "weather (" + currentWeatherType + ")";
     }
 }

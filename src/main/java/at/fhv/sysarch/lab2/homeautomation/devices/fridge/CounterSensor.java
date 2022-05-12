@@ -35,13 +35,8 @@ public class CounterSensor extends AbstractBehavior<CounterSensor.Command> {
 
     public Behavior<Command> onVolumeRequest(MeasurementRequest measurementRequest) {
         var result = measurementRequest.things.values().stream().reduce(0, Integer::sum);
-        getContext().getLog().info("{} measured {} items", this, result);
+        getContext().getLog().info("measured {} items", result);
         measurementRequest.receiver.tell(new Measurement(result, maxNumberOfItems - result));
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "counter sensor";
     }
 }

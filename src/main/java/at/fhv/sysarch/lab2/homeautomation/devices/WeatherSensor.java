@@ -21,7 +21,7 @@ public class WeatherSensor extends AbstractBehavior<WeatherSensor.Command> {
     private WeatherSensor(ActorContext<Command> context, TimerScheduler<Command> timers, ActorRef<Weather.Command> weather, ActorRef<Blinds.Command> blinds) {
         super(context);
 
-        timers.startTimerAtFixedRate(Measure.INST, Duration.ofSeconds(15));
+        timers.startTimerAtFixedRate(Measure.INST, Duration.ofSeconds(3));
 
         this.weather = weather;
         this.blinds = blinds;

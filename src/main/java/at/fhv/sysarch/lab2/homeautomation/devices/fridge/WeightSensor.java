@@ -39,15 +39,10 @@ public class WeightSensor extends AbstractBehavior<WeightSensor.Command> {
                 .mapToDouble(e -> e.getKey().weight() * e.getValue())
                 .sum();
 
-        getContext().getLog().info("{} measured {} kg", this, result);
+        getContext().getLog().info("measured {} kg", result);
 
         measurementRequest.receiver.tell(new Measurement(result, maxLoad - result));
 
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "weight sensor";
     }
 }

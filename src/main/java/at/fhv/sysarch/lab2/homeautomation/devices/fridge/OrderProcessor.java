@@ -106,18 +106,12 @@ public class OrderProcessor extends AbstractBehavior<OrderProcessor.Command> {
         var product = receiveOrder.product;
 
         if(rc.remainingCount >= amount && rw.remainingWeight >= product.weight()) {
-            getContext().getLog().info("confirming order");
+            getContext().getLog().info("confirming order. your total: €{}", amount * product.price());
             fridge.tell(new Fridge.AcceptDelivery(product, amount));
         }
         else {
             getContext().getLog().info("order not possible");
         }
         return Behaviors.stopped();
-    }
-
-
-    @Override
-    public String toString() {
-        return "order processor";
     }
 }
