@@ -19,6 +19,7 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
     public record CurrentContentsResponse(Map<Product, Integer> contents) implements Command { }
     public record RemoveProduct(String productName) implements Command { }
     public record RequestOrder(Product product, int amount) implements Command { }
+    public record AcceptDelivery(Product product, int amount) implements Command { }
 
     public record Product(String name, double price, double weight) { }
 
@@ -44,6 +45,7 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
                 .onMessage(CurrentContentsRequest.class, this::onCurrentContentsRequest)
                 .onMessage(RemoveProduct.class, this::onRemoveProduct)
                 .onMessage(RequestOrder.class, this::onRequestOrder)
+                .onMessage(AcceptDelivery.class, this::onAcceptDelivery)
                 .build();
     }
 
@@ -80,6 +82,17 @@ public class Fridge extends AbstractBehavior<Fridge.Command> {
                 "OrderProcessor" + UUID.randomUUID());
 
         processor.tell(new OrderProcessor.ReceiveOrder(requestOrder.product, requestOrder.amount));
+
+        return this;
+    }
+
+    private Behavior<Command> onAcceptDelivery(AcceptDelivery acceptDelivery) {
+
+        var product = acceptDelivery.product;
+        var amount = acceptDelivery.amount;
+
+        // create entry or increment amount of existing
+        contents.merge(product, amount, Integer::sum);
 
         return this;
     }

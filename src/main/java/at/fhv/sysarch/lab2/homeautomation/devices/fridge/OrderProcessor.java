@@ -104,13 +104,16 @@ public class OrderProcessor extends AbstractBehavior<OrderProcessor.Command> {
         if(rc == null || rw == null)
             return;
 
-        if(rc.remainingCount >= receiveOrder.amount && rw.remainingWeight >= receiveOrder.product.weight()) {
+        var amount = receiveOrder.amount;
+        var product = receiveOrder.product;
+
+        if(rc.remainingCount >= amount && rw.remainingWeight >= product.weight()) {
             getContext().getLog().info("confirming order");
+            fridge.tell(new Fridge.AcceptDelivery(product, amount));
         }
         else {
             getContext().getLog().info("order not possible");
         }
-
         getContext().stop(getContext().getSelf());
     }
 
