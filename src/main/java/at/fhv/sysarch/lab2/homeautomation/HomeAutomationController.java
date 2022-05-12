@@ -10,13 +10,10 @@ import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.*;
 import at.fhv.sysarch.lab2.homeautomation.devices.fridge.CounterSensor;
 import at.fhv.sysarch.lab2.homeautomation.devices.fridge.Fridge;
-import at.fhv.sysarch.lab2.homeautomation.devices.fridge.OrderProcessor;
 import at.fhv.sysarch.lab2.homeautomation.devices.fridge.WeightSensor;
 import at.fhv.sysarch.lab2.homeautomation.environmental.AmbientTemperature;
 import at.fhv.sysarch.lab2.homeautomation.environmental.Weather;
 import at.fhv.sysarch.lab2.homeautomation.ui.UI;
-
-import java.time.Duration;
 
 public class HomeAutomationController extends AbstractBehavior<Void>{
 

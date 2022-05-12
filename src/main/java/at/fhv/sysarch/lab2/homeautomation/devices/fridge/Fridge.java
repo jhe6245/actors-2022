@@ -13,7 +13,6 @@ import java.util.UUID;
 
 public class Fridge extends AbstractBehavior<Fridge.Command> {
 
-
     public interface Command {}
     public record CurrentContentsRequest(ActorRef<CurrentContentsResponse> receiver) implements Command { }
     public record CurrentContentsResponse(Map<Product, Integer> contents) implements Command { }

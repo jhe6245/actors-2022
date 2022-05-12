@@ -23,7 +23,6 @@ public class AirCondition extends AbstractBehavior<AirCondition.Command> {
 
     private static final double targetTemperature = 20;
 
-
     private AirCondition(ActorContext<Command> context, TimerScheduler<AirCondition.Command> timers, String groupId, String deviceId, ActorRef<TemperatureSensor.Command> temperatureSensor) {
         super(context);
 

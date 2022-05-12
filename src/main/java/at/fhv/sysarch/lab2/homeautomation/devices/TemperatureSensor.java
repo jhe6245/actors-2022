@@ -60,9 +60,4 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Comman
                 .tell(new Reading(receiveEnvironmentTemp.val(), "Celsius"));
         return this;
     }
-
-    @Override
-    public String toString() {
-        return "temperature sensor " + groupId + "-" + deviceId;
-    }
 }
